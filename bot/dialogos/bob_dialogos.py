@@ -34,7 +34,7 @@ class BobDialogo(ActivityHandler):
 
     async def enviar_boas_vindas(self, turn_context: TurnContext):
         card = HeroCard(
-            title="🎮 Bem-vindo ao Assistente Virtual da Loja Gamer!",
+            title="🎮 Bem-vindo a MUBAK!",
             text="Estou aqui para te ajudar a encontrar os melhores consoles e ofertas.",
             buttons=[
                 CardAction(type=ActionTypes.im_back, title="Ver todos os produtos", value="Ver todos os produtos"),
@@ -98,11 +98,13 @@ class BobDialogo(ActivityHandler):
             "play": "playstation",
             "xbox": "xbox",
             "xbox one": "xbox",
+            "xbox one x": "xbox",
             "switch": "nintendo",
             "switch2": "nintendo",
             "nintendo": "nintendo",
             "nintendo switch": "nintendo",
-        
+            "nintendo switch 2": "nintendo",
+            "nintendo 2": "nintendo",
 
         }
         
