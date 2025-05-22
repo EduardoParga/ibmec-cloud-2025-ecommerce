@@ -2,6 +2,7 @@ from botbuilder.core import ActivityHandler, TurnContext, MessageFactory
 from botbuilder.schema import HeroCard, CardImage, Attachment, Activity, ActivityTypes, CardAction, ActionTypes
 import aiohttp
 import json
+from urllib.parse import quote
 
 class BobDialogo(ActivityHandler):
     def __init__(self, conversation_state, user_state):
@@ -9,6 +10,7 @@ class BobDialogo(ActivityHandler):
         self.conversation_state = conversation_state
         self.user_state = user_state
         self.api_url = "http://localhost:8080/product"
+        self.api_search_url = "http://localhost:8080/product/search"
 
     async def on_members_added_activity(self, members_added, turn_context: TurnContext):
         for member in members_added:
@@ -18,27 +20,25 @@ class BobDialogo(ActivityHandler):
     async def on_message_activity(self, turn_context: TurnContext):
         texto = turn_context.activity.text.strip().lower()
 
-        if "pedido" in texto:
-            await turn_context.send_activity("Você escolheu Consultas de Pedidos. Ainda não implementado.")
-        elif "produto" in texto or texto in ["2", "ver produtos", "quero ver produtos", "consulta de produtos"]:
+        if texto in ["ver todos os produtos", "todos", "listar produtos"]:
             await self.mostrar_produtos(turn_context)
-        elif "compra" in texto:
-            await turn_context.send_activity("Você escolheu Compra de Produtos. Ainda não implementado.")
-        elif "extrato" in texto:
-            await turn_context.send_activity("Você escolheu Extrato de Compras. Ainda não implementado.")
-        else:
-            await turn_context.send_activity("Desculpe, não entendi sua escolha.")
-            await self.enviar_boas_vindas(turn_context)
+            return
+
+        if texto in ["consultar produto especifico", "produto especifico"]:
+            await turn_context.send_activity("Digite o nome do produto que deseja consultar:")
+            return
+
+        resultado = await self.buscar_produto_por_nome(texto, turn_context)
+        if not resultado:
+            await turn_context.send_activity("Esse produto não foi encontrado em nosso estoque.")
 
     async def enviar_boas_vindas(self, turn_context: TurnContext):
         card = HeroCard(
-            title="Bem-vindo ao Assistente Virtual!",
-            text="Escolha uma das opções abaixo:",
+            title="🎮 Bem-vindo ao Assistente Virtual da Loja Gamer!",
+            text="Estou aqui para te ajudar a encontrar os melhores consoles e ofertas.",
             buttons=[
-                CardAction(type=ActionTypes.im_back, title="Consultas de Pedidos", value="Consultas de Pedidos"),
-                CardAction(type=ActionTypes.im_back, title="Consulta de Produtos", value="Consulta de Produtos"),
-                CardAction(type=ActionTypes.im_back, title="Compra de Produtos", value="Compra de Produtos"),
-                CardAction(type=ActionTypes.im_back, title="Extrato de Compras", value="Extrato de Compras")
+                CardAction(type=ActionTypes.im_back, title="Ver todos os produtos", value="Ver todos os produtos"),
+                CardAction(type=ActionTypes.im_back, title="Consultar Produto Específico", value="Consultar Produto Especifico"),
             ]
         )
 
@@ -62,48 +62,58 @@ class BobDialogo(ActivityHandler):
                             return
 
                         for produto in produtos:
-                            nome = produto.get("productName", "Nome não disponível")
-                            descricao = produto.get("productDescription", "Descrição não disponível")
-                            preco = produto.get("price", 0.0)
-                            imagem_url = self.processar_url_imagem(produto.get("imageUrl", []))
-
-                            card = HeroCard(
-                                title=nome,
-                                subtitle=descricao,
-                                text=f"Preço: R$ {preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-                                images=[CardImage(url=imagem_url)] if imagem_url else []
-                            )
-
-                            response = Activity(
-                                type=ActivityTypes.message,
-                                attachments=[Attachment(
-                                    content_type="application/vnd.microsoft.card.hero",
-                                    content=card
-                                )]
-                            )
-                            await turn_context.send_activity(response)
+                            await self.exibir_card_produto(turn_context, produto)
                     else:
                         await turn_context.send_activity(f"Erro ao buscar produtos: HTTP {resp.status}")
         except Exception as e:
             await turn_context.send_activity(f"Ocorreu um erro ao buscar produtos: {str(e)}")
 
-    def processar_url_imagem(self, image_data):
-        if not image_data:
-            return None
+    async def buscar_produto_por_nome(self, termo, turn_context):
+        termo_extraido = self.extrair_nome_produto(termo)
+        if not termo_extraido:
+            return False
 
-        if isinstance(image_data, str) and image_data.startswith(('[', '{')):
-            try:
-                parsed = json.loads(image_data.replace("'", '"'))
-                if isinstance(parsed, list) and len(parsed) > 0:
-                    return parsed[0]
-                return parsed
-            except:
-                return None
+        termo_codificado = quote(termo_extraido)
 
-        if isinstance(image_data, list) and len(image_data) > 0:
-            return image_data[0]
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.api_search_url}?nome={termo_codificado}") as resp:
+                    if resp.status == 200:
+                        produtos = await resp.json()
+                        if not produtos:
+                            return False
 
-        if isinstance(image_data, str) and image_data.startswith(('http://', 'https://')):
-            return image_data
+                        for produto in produtos:
+                            await self.exibir_card_produto(turn_context, produto)
+                        return True
+                    else:
+                        await turn_context.send_activity(f"Erro ao buscar produto: HTTP {resp.status}")
+        except Exception as e:
+            await turn_context.send_activity(f"Erro ao buscar produto: {str(e)}")
 
-        return None
+        return False
+
+    def extrair_nome_produto(self, texto):
+        return texto.strip() if len(texto.strip()) > 1 else None
+
+    async def exibir_card_produto(self, turn_context, produto):
+        nome = produto.get("productName", "N/A")
+        descricao = produto.get("productDescription", "N/A")
+        preco = produto.get("price", "N/A")
+        imagem = produto.get("imageUrl", [])
+        url = imagem[0] if isinstance(imagem, list) and imagem else None
+
+        card = HeroCard(
+            title=nome,
+            subtitle=descricao,
+            text=f"Preço: R$ {preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            images=[CardImage(url=url)] if url else []
+        )
+
+        await turn_context.send_activity(Activity(
+            type=ActivityTypes.message,
+            attachments=[Attachment(
+                content_type="application/vnd.microsoft.card.hero",
+                content=card
+            )]
+        ))

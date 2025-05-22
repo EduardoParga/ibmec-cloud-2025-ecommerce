@@ -1,4 +1,5 @@
 package br.edu.ibmec.cloud.ecommerce_cloud.controller;
+
 import br.edu.ibmec.cloud.ecommerce_cloud.repository.ProductRepository;
 import br.edu.ibmec.cloud.ecommerce_cloud.model.Product;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,5 +42,11 @@ public class ProductController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Product>> buscarPorNome(@RequestParam String nome) {
+        List<Product> produtos = repository.findByProductNameContainingIgnoreCase(nome);
+        return new ResponseEntity<>(produtos, HttpStatus.OK);
     }
 }
