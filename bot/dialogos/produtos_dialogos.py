@@ -12,6 +12,7 @@ class ConsultarProdutosDialog(ComponentDialog):
             WaterfallDialog(
                 "waterfall",
                 [
+                    self.perguntar_nome_produto_step,
                     self.mostrar_produtos_step,
                     self.encerrar_dialogo_step,
                 ],
@@ -19,10 +20,17 @@ class ConsultarProdutosDialog(ComponentDialog):
         )
         self.initial_dialog_id = "waterfall"
 
-    async def mostrar_produtos_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        await step_context.context.send_activity("Buscando produtos disponíveis...")
+    async def perguntar_nome_produto_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        return await step_context.prompt(
+            "text_prompt",
+            PromptOptions(prompt=MessageFactory.text("Qual produto você deseja pesquisar?"))
+        )
 
-        api_url = "http://localhost:8080/products"  
+    async def mostrar_produtos_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        nome_produto = step_context.result
+        await step_context.context.send_activity(f"Buscando produtos com '{nome_produto}'...")
+
+        api_url = f"http://localhost:8080/product/search?nome={nome_produto}"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url) as resp:
@@ -32,7 +40,7 @@ class ConsultarProdutosDialog(ComponentDialog):
                         await step_context.context.send_activity("Nenhum produto encontrado.")
                     else:
                         for p in produtos:
-                            texto = f"**{p['nome']}**\nDescrição: {p['descricao']}\nPreço: R$ {p['preco']:.2f}"
+                            texto = f"**{p.get('productName', p.get('nome', ''))}**\nDescrição: {p.get('description', p.get('descricao', ''))}\nPreço: R$ {p.get('price', p.get('preco', 0)):.2f}"
                             await step_context.context.send_activity(texto)
                 else:
                     await step_context.context.send_activity("Erro ao acessar a API de produtos.")
