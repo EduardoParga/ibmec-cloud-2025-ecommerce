@@ -1,77 +1,45 @@
 package br.edu.ibmec.cloud.ecommerce_cloud.controller;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
+import br.edu.ibmec.cloud.ecommerce_cloud.repository.ProductRepository;
+import br.edu.ibmec.cloud.ecommerce_cloud.model.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import br.edu.ibmec.cloud.ecommerce_cloud.model.Product;
-import br.edu.ibmec.cloud.ecommerce_cloud.repository.cosmos.ProductRepository;
-
+import java.util.List;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/products")
+@RequestMapping("/product")
 public class ProductController {
 
     @Autowired
     private ProductRepository repository;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Product> create(@RequestBody Product product) {
-        
-        //Gerando identificadores unicos
-        product.setId(UUID.randomUUID().toString());
-        repository.save(product);
-
-        return new ResponseEntity<>(product, HttpStatus.CREATED);
+        Product saved = repository.save(product);
+        return new ResponseEntity<>(saved, HttpStatus.CREATED);
     }
 
     @GetMapping("{id}")
-    public ResponseEntity<Product> get(@PathVariable String id) {
-        Optional<Product> optProduct = this.repository.findById(id);
-
-        if (optProduct.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        return new ResponseEntity<>(optProduct.get(), HttpStatus.OK);
+    public ResponseEntity<Product> get(@PathVariable Long id) {
+        Optional<Product> produto = repository.findById(id);
+        return produto.map(ResponseEntity::ok)
+                      .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    @GetMapping()
-    public ResponseEntity<Iterable<Product>> getAll() {
-        List<Product> result = new ArrayList<>();
-        repository.findAll().forEach(result::add);
-        return new ResponseEntity<>(result, HttpStatus.OK);
+    @GetMapping
+    public ResponseEntity<List<Product>> getAll() {
+        return new ResponseEntity<>(repository.findAll(), HttpStatus.OK);
     }
-
 
     @DeleteMapping("{id}")
-    public ResponseEntity<Product> delete(@PathVariable String id) {
-        Optional<Product> optProduct = this.repository.findById(id);
-
-        if (optProduct.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        if (repository.existsById(id)) {
+            repository.deleteById(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-
-        this.repository.delete(optProduct.get());
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
-
-
-
-
 }

@@ -1,47 +1,53 @@
-import sys
+import os
 from aiohttp import web
 from botbuilder.core import (
-    BotFrameworkAdapter,
     BotFrameworkAdapterSettings,
+    BotFrameworkAdapter,
+    TurnContext,
     MemoryStorage,
     ConversationState,
     UserState,
 )
 from botbuilder.schema import Activity
-from bot import BobTheBot
+from botbuilder.integration.aiohttp import BotFrameworkHttpAdapter
+from dialogos.bob_dialogos import BobDialogo 
 
-APP_ID = ""  
-APP_PASSWORD = ""  
 
+APP_ID = os.environ.get("MicrosoftAppId", "")
+APP_PASSWORD = os.environ.get("MicrosoftAppPassword", "")
 SETTINGS = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)
-ADAPTER = BotFrameworkAdapter(SETTINGS)
+ADAPTER = BotFrameworkHttpAdapter(SETTINGS)
 
-memory = MemoryStorage()
-conversation_state = ConversationState(memory)
-user_state = UserState(memory)
+# Middleware de erro
+async def on_error(context: TurnContext, error: Exception):
+    print(f"[on_turn_error] Unhandled error: {error}")
+    await context.send_activity("Ocorreu um erro inesperado, tente novamente mais tarde.")
+ADAPTER.on_turn_error = on_error
 
-BOT = BobTheBot(conversation_state, user_state)
+# Estados
+MEMORY = MemoryStorage()
+CONVERSATION_STATE = ConversationState(MEMORY)
+USER_STATE = UserState(MEMORY)
 
-async def messages(req):
-    if "application/json" in req.headers.get("Content-Type", ""):
-        body = await req.json()
-    else:
-        return web.Response(status=415)
+# Bot principal
+BOT = BobDialogo(CONVERSATION_STATE, USER_STATE)
 
+# Endpoint
+async def messages(req: web.Request) -> web.Response:
+    body = await req.json()
     activity = Activity().deserialize(body)
     auth_header = req.headers.get("Authorization", "")
-
     response = await ADAPTER.process_activity(activity, auth_header, BOT.on_turn)
     if response:
         return web.json_response(data=response.body, status=response.status)
     return web.Response(status=201)
 
+# Inicialização do servidor
 APP = web.Application()
 APP.router.add_post("/api/messages", messages)
 
 if __name__ == "__main__":
     try:
         web.run_app(APP, host="localhost", port=3978)
-    except Exception as error:
-        print(f"Error: {error}")
-        sys.exit(1)
+    except Exception as e:
+        raise e
