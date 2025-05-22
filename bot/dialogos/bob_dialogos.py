@@ -69,8 +69,7 @@ class BobDialogo(ActivityHandler):
             await turn_context.send_activity(f"Ocorreu um erro ao buscar produtos: {str(e)}")
 
     async def buscar_produto_por_nome(self, termo, turn_context):
-        termo_mapeado = self.aplicar_alias(termo)
-        termo_codificado = quote(termo_mapeado)
+        termo_codificado = quote(termo)
 
         try:
             async with aiohttp.ClientSession() as session:
@@ -89,32 +88,6 @@ class BobDialogo(ActivityHandler):
             await turn_context.send_activity(f"Erro ao buscar produto: {str(e)}")
 
         return False
-
-    def aplicar_alias(self, texto):
-        aliases = {
-            "ps5": "playstation",
-            "ps": "playstation",
-            "playstation 5": "playstation",
-            "play": "playstation",
-            "xbox": "xbox",
-            "xbox one": "xbox",
-            "xbox one x": "xbox",
-            "switch": "nintendo",
-            "switch2": "nintendo",
-            "nintendo": "nintendo",
-            "nintendo switch": "nintendo",
-            "nintendo switch 2": "nintendo",
-            "nintendo 2": "nintendo",
-
-        }
-        
-
-        
-        texto = texto.strip().lower()
-        for alias, substituto in aliases.items():
-            if alias in texto:
-                return substituto
-        return texto if len(texto) > 1 else ""
 
     async def exibir_card_produto(self, turn_context, produto):
         nome = produto.get("productName", "N/A")

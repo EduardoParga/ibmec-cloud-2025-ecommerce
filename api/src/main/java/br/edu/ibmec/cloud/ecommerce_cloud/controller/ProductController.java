@@ -1,3 +1,4 @@
+
 package br.edu.ibmec.cloud.ecommerce_cloud.controller;
 
 import br.edu.ibmec.cloud.ecommerce_cloud.repository.ProductRepository;
@@ -46,7 +47,7 @@ public class ProductController {
 
     @GetMapping("/search")
     public ResponseEntity<List<Product>> buscarPorNome(@RequestParam String nome) {
-        List<Product> produtos = repository.findByProductNameContainingIgnoreCase(nome);
+        List<Product> produtos = repository.searchByNameOrDescription(nome);
         return new ResponseEntity<>(produtos, HttpStatus.OK);
     }
 }
