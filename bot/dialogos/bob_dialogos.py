@@ -1,8 +1,8 @@
+import aiohttp
 from botbuilder.core import ActivityHandler, TurnContext, MessageFactory
 from botbuilder.schema import HeroCard, CardImage, Attachment, Activity, ActivityTypes, CardAction, ActionTypes
-import aiohttp
-import json
 from urllib.parse import quote
+import json
 
 class BobDialogo(ActivityHandler):
     def __init__(self, conversation_state, user_state):
@@ -20,15 +20,19 @@ class BobDialogo(ActivityHandler):
     async def on_message_activity(self, turn_context: TurnContext):
         texto = turn_context.activity.text.strip().lower()
 
-        if texto in ["ver todos os produtos", "todos", "listar produtos"]:
+        if texto in [
+            "ver todos os produtos", "todos", "listar produtos"
+        ]:
             await self.mostrar_produtos(turn_context)
             return
 
-        if texto in ["consultar produto especifico", "produto especifico"]:
+        if texto in [
+            "consultar produto especifico", "produto especifico"
+        ]:
             await turn_context.send_activity("Digite o nome do produto que deseja consultar:")
             return
 
-        resultado = await self.buscar_produto_por_nome(texto, turn_context)
+        resultado = await self.buscar_produto_por_nome_em_texto(texto, turn_context)
         if not resultado:
             await turn_context.send_activity("Esse produto não foi encontrado em nosso estoque.")
 
@@ -68,25 +72,21 @@ class BobDialogo(ActivityHandler):
         except Exception as e:
             await turn_context.send_activity(f"Ocorreu um erro ao buscar produtos: {str(e)}")
 
-    async def buscar_produto_por_nome(self, termo, turn_context):
-        termo_codificado = quote(termo)
-
+    async def buscar_produto_por_nome_em_texto(self, texto, turn_context):
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.api_search_url}?nome={termo_codificado}") as resp:
-                    if resp.status == 200:
-                        produtos = await resp.json()
-                        if not produtos:
-                            return False
+                async with session.get(self.api_url) as resp:
+                    if resp.status != 200:
+                        return False
 
-                        for produto in produtos:
+                    produtos = await resp.json()
+                    for produto in produtos:
+                        nome = produto.get("productName", "").lower()
+                        if nome and any(palavra in texto for palavra in nome.split()):
                             await self.exibir_card_produto(turn_context, produto)
-                        return True
-                    else:
-                        await turn_context.send_activity(f"Erro ao buscar produto: HTTP {resp.status}")
+                            return True
         except Exception as e:
             await turn_context.send_activity(f"Erro ao buscar produto: {str(e)}")
-
         return False
 
     async def exibir_card_produto(self, turn_context, produto):
@@ -109,4 +109,4 @@ class BobDialogo(ActivityHandler):
                 content_type="application/vnd.microsoft.card.hero",
                 content=card
             )]
-        ))
+        ))   

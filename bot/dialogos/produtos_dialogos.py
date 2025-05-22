@@ -1,8 +1,3 @@
-import aiohttp
-from botbuilder.dialogs import ComponentDialog, WaterfallDialog, WaterfallStepContext, DialogTurnResult
-from botbuilder.dialogs.prompts import TextPrompt, PromptOptions
-from botbuilder.core import MessageFactory
-
 class ConsultarProdutosDialog(ComponentDialog):
     def __init__(self, dialog_id: str = "consultar_produtos_dialog"):
         super(ConsultarProdutosDialog, self).__init__(dialog_id)
