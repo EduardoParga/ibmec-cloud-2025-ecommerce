@@ -27,7 +27,7 @@ public class Usuario {
     private String email;
 
     @Column
-    private LocalDateTime dtNascimento;
+    private String dt_nascimento;
 
     @Column
     private String cpf;
