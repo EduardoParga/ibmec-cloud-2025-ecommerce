@@ -1,38 +1,69 @@
 import aiohttp
-from botbuilder.dialogs import ComponentDialog, WaterfallDialog, WaterfallStepContext, DialogTurnResult
+from datetime import datetime
+from botbuilder.dialogs import (
+    ComponentDialog,
+    WaterfallDialog,
+    WaterfallStepContext,
+    DialogTurnResult,
+)
 from botbuilder.core import MessageFactory
 
 class ExtratoComprasDialog(ComponentDialog):
-    def __init__(self, dialog_id: str = "extrato_compras_dialog"):
-        super(ExtratoComprasDialog, self).__init__(dialog_id)
+    def __init__(self, user_profile_accessor=None, dialog_id="extrato_compras_dialog"):
+        super().__init__(dialog_id)
+        self.user_profile_accessor = user_profile_accessor
 
-        self.add_dialog(WaterfallDialog(
-            "waterfall",
-            [self.exibir_extrato_step, self.encerrar_step]
-        ))
+        self.add_dialog(
+            WaterfallDialog(
+                "main_dialog",
+                [
+                    self.mostrar_extrato_step,
+                    self.encerrar_dialogo_step,
+                ]
+            )
+        )
+        self.initial_dialog_id = "main_dialog"
 
-        self.initial_dialog_id = "waterfall"
+    async def mostrar_extrato_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        id_user = None
+        if self.user_profile_accessor:
+            user_profile = await self.user_profile_accessor.get(step_context.context, dict)
+            id_user = user_profile.get("id_user")
 
-    async def exibir_extrato_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        if not id_user:
+            await step_context.context.send_activity("Não foi possível identificar o usuário. Faça login novamente.")
+            return await step_context.end_dialog()
+
+        api_url = f"http://localhost:8080/purchase/{id_user}/extract"
+
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get("http://localhost:8080/compras/extrato") as resp:
+                async with session.get(api_url) as resp:
                     if resp.status == 200:
                         extrato = await resp.json()
                         if not extrato:
-                            await step_context.context.send_activity("Você ainda não possui compras registradas.")
+                            await step_context.context.send_activity("Você ainda não realizou nenhuma compra.")
                         else:
-                            for item in extrato:
-                                await step_context.context.send_activity(
-                                    f"{item.get('data', 'sem data')}: {item.get('produto', 'sem nome')} - R$ {item.get('valor', 0):.2f}"
-                                )
+                            linhas = []
+                            for compra in extrato:
+                                nome = compra.get('nome_produto', 'Produto')
+                                valor = compra.get('price', 0)
+                                data_raw = compra.get('dtCompra', '')
+                                # Formata a data
+                                try:
+                                    data_fmt = datetime.fromisoformat(data_raw).strftime('%d/%m/%Y %H:%M')
+                                except Exception:
+                                    data_fmt = data_raw
+                                linhas.append(f"• {nome}\n   Valor: R$ {valor:,.2f}\n   Data: {data_fmt}")
+                            mensagem = "🧾 **Extrato de Compras:**\n\n" + "\n\n".join(linhas)
+                            await step_context.context.send_activity(mensagem)
                     else:
                         await step_context.context.send_activity("Erro ao buscar extrato de compras.")
         except Exception as e:
-            await step_context.context.send_activity(f"Erro de conexão: {str(e)}")
+            await step_context.context.send_activity(f"Erro ao buscar extrato de compras: {str(e)}")
 
         return await step_context.next(None)
 
-    async def encerrar_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+    async def encerrar_dialogo_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity("Extrato finalizado. Caso deseje mais detalhes, posso ajudar!")
         return await step_context.end_dialog()

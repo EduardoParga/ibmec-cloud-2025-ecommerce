@@ -1,4 +1,6 @@
 import aiohttp
+import urllib.parse
+import re
 from botbuilder.dialogs import (
     ComponentDialog,
     WaterfallDialog,
@@ -11,65 +13,68 @@ from botbuilder.core import MessageFactory
 from botbuilder.schema import HeroCard, CardImage, Attachment, Activity, ActivityTypes
 
 class ConsultarProdutosDialog(ComponentDialog):
-    def __init__(self, dialog_id: str = "consultar_produtos_dialog"):
-        super(ConsultarProdutosDialog, self).__init__(dialog_id)
-
-        self.add_dialog(TextPrompt("text_prompt"))
+    def __init__(self, dialog_id="consultar_produtos_dialog"):
+        super().__init__(dialog_id)
+        self.add_dialog(TextPrompt("busca_produto_prompt"))
         self.add_dialog(
             WaterfallDialog(
-                "waterfall",
+                "main_dialog",
                 [
-                    self.perguntar_nome_produto_step,
-                    self.mostrar_produtos_step,
-                    self.encerrar_dialogo_step,
-                ],
+                    self.perguntar_termo_busca_step,
+                    self.mostrar_resultados_step,
+                ]
             )
         )
-        self.initial_dialog_id = "waterfall"
+        self.initial_dialog_id = "main_dialog"
 
-    async def perguntar_nome_produto_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+    async def perguntar_termo_busca_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         return await step_context.prompt(
-            "text_prompt",
-            PromptOptions(prompt=MessageFactory.text("Qual produto você deseja pesquisar?"))
+            "busca_produto_prompt",
+            PromptOptions(prompt=MessageFactory.text("🔎 Qual produto você procura? Pode perguntar de forma natural!"))
         )
 
-    async def mostrar_produtos_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        nome_produto = step_context.result
-      
+    async def mostrar_resultados_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        termo = step_context.result.strip()
+        termo_limpo = re.sub(r'[^\w\s]', '', termo)
+        termo_encoded = urllib.parse.quote(termo_limpo)
 
-        api_url = f"http://localhost:8080/product/search?nome={nome_produto}"
+        api_url = f"http://localhost:8080/product/search?termo={termo_encoded}"
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(api_url) as resp:
-                if resp.status == 200:
-                    produtos = await resp.json()
-                    if not produtos:
-                        await step_context.context.send_activity("Nenhum produto encontrado.")
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(api_url) as resp:
+                    if resp.status == 200:
+                        produtos = await resp.json()
+                        if not produtos:
+                            await step_context.context.send_activity("❌ Nenhum produto encontrado para sua busca.")
+                        else:
+                            for produto in produtos:
+                                nome = produto.get('nome_produto') or produto.get('productName', 'Produto')
+                                descricao = produto.get('descricao') or produto.get('productDescription', '')
+                                preco = produto.get('price', 0)
+                                imagem = produto.get('imageUrl', [])
+                                # Suporte para imageUrl ser string ou lista
+                                if isinstance(imagem, list):
+                                    url = imagem[0] if imagem else None
+                                else:
+                                    url = imagem if imagem else None
+
+                                card = HeroCard(
+                                    title=f"🎮 {nome}",
+                                    subtitle=descricao,
+                                    text=f"💰 Preço: R$ {preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                                    images=[CardImage(url=url)] if url else []
+                                )
+                                await step_context.context.send_activity(Activity(
+                                    type=ActivityTypes.message,
+                                    attachments=[Attachment(
+                                        content_type="application/vnd.microsoft.card.hero",
+                                        content=card
+                                    )]
+                                ))
                     else:
-                        for p in produtos:
-                            nome = p.get('productName', p.get('nome', ''))
-                            descricao = p.get('productDescription', p.get('descricao', p.get('description', '')))
-                            preco = p.get('price', p.get('preco', 0))
-                            imagem = p.get('imageUrl', [])
-                            url = imagem[0] if isinstance(imagem, list) and imagem else None
+                        await step_context.context.send_activity("⚠️ Erro ao buscar produtos.")
+        except Exception as e:
+            await step_context.context.send_activity(f"⚠️ Erro ao buscar produtos: {str(e)}")
 
-                            card = HeroCard(
-                                title=nome,
-                                subtitle=descricao,
-                                text=f"Preço: R$ {preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-                                images=[CardImage(url=url)] if url else []
-                            )
-                            await step_context.context.send_activity(Activity(
-                                type=ActivityTypes.message,
-                                attachments=[Attachment(
-                                    content_type="application/vnd.microsoft.card.hero",
-                                    content=card
-                                )]
-                            ))
-                else:
-                    await step_context.context.send_activity("Erro ao acessar a API de produtos.")
-        return await step_context.next(None)
-
-    async def encerrar_dialogo_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        await step_context.context.send_activity("Consulta finalizada! Se precisar, é só chamar.")
         return await step_context.end_dialog()

@@ -2,8 +2,10 @@ package br.edu.ibmec.cloud.ecommerce_cloud.controller;
 
 import br.edu.ibmec.cloud.ecommerce_cloud.model.Cartao;
 import br.edu.ibmec.cloud.ecommerce_cloud.model.Usuario;
+import br.edu.ibmec.cloud.ecommerce_cloud.model.Compra;
 import br.edu.ibmec.cloud.ecommerce_cloud.repository.CartaoRepository;
 import br.edu.ibmec.cloud.ecommerce_cloud.repository.UsuarioRepository;
+import br.edu.ibmec.cloud.ecommerce_cloud.repository.CompraRepository;
 import br.edu.ibmec.cloud.ecommerce_cloud.request.TransacaoRequest;
 import br.edu.ibmec.cloud.ecommerce_cloud.request.TransacaoResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,30 +27,31 @@ public class CartaoController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private CompraRepository compraRepository;
+
     @PostMapping
     public ResponseEntity<Cartao> create(@PathVariable("id_user") int id_user, @RequestBody Cartao cartao) {
-        //Verificando se o usuario existe na base
+        // Verificando se o usuario existe na base
         Optional<Usuario> optionalUsuario = this.usuarioRepository.findById(id_user);
 
         if (optionalUsuario.isEmpty())
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
-        //Cria o cartao de credito na base
+        // Cria o cartao de credito na base
         cartaoRepository.save(cartao);
 
-        //Associa o cartao de credito ao usuario
+        // Associa o cartao de credito ao usuario
         Usuario usuario = optionalUsuario.get();
-
         usuario.getCartoes().add(cartao);
         usuarioRepository.save(usuario);
 
         return new ResponseEntity<>(cartao, HttpStatus.CREATED);
-
     }
 
     @PostMapping("/authorize")
     public ResponseEntity<TransacaoResponse> authorize(@PathVariable("id_user") int id_user, @RequestBody TransacaoRequest request) {
-        //Verificando se o usuario existe na base
+        // Verificando se o usuario existe na base
         Optional<Usuario> optionalUsuario = this.usuarioRepository.findById(id_user);
 
         if (optionalUsuario.isEmpty())
@@ -57,57 +60,59 @@ public class CartaoController {
         Usuario usuario = optionalUsuario.get();
         Cartao cartaoCompra = null;
 
-        //Busca os dados do cartao de credito;
-        for (Cartao cartao: usuario.getCartoes()) {
+        // Busca os dados do cartao de credito;
+        for (Cartao cartao : usuario.getCartoes()) {
             if (request.getNumero().equals(cartao.getNumero()) && request.getCvv().equals(cartao.getCvv())) {
                 cartaoCompra = cartao;
                 break;
             }
         }
 
-        //Não achei o cartao do usuario
+        TransacaoResponse response = new TransacaoResponse();
+
+        // Não achei o cartao do usuario
         if (cartaoCompra == null) {
-            TransacaoResponse response = new TransacaoResponse();
             response.setStatus("NOT_AUTHORIZED");
             response.setDtTransacao(LocalDateTime.now());
             response.setMessage("Cartão não encontrado para o usuario");
             return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
         }
 
-
-        //Verifica se o cartao não está expirado
-        if (cartaoCompra.getDtExpiracao().isBefore(LocalDateTime.now())) {
-            TransacaoResponse response = new TransacaoResponse();
+        // Verifica se o cartao não está expirado
+        if (cartaoCompra.getDtExpiracao() != null && cartaoCompra.getDtExpiracao().isBefore(LocalDateTime.now())) {
             response.setStatus("NOT_AUTHORIZED");
             response.setDtTransacao(LocalDateTime.now());
             response.setMessage("Cartão Expirado");
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
 
-        //Verifica se tem dinheiro no cartao para realizr a compra
+        // Verifica se tem dinheiro no cartao para realizar a compra
         if (cartaoCompra.getSaldo() < request.getValor()) {
-            TransacaoResponse response = new TransacaoResponse();
             response.setStatus("NOT_AUTHORIZED");
             response.setDtTransacao(LocalDateTime.now());
             response.setMessage("Sem saldo para realizar a compra");
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
 
-        //Debita no cartao de credito o valor da compra
+        // Debita no cartao de credito o valor da compra
         cartaoCompra.setSaldo(cartaoCompra.getSaldo() - request.getValor());
 
-        //Atualiza o cartao na base de dados
+        // Atualiza o cartao na base de dados
         cartaoRepository.save(cartaoCompra);
 
-        TransacaoResponse response = new TransacaoResponse();
+        // Salva a compra no banco
+        Compra compra = new Compra();
+        compra.setUsuario(usuario);
+        compra.setNome_produto(request.getNome_produto()); // <-- Corrigido aqui!
+        compra.setPrice(request.getValor());
+        compra.setDtCompra(LocalDateTime.now());
+        compraRepository.save(compra);
+
         response.setStatus("AUTHORIZED");
         response.setDtTransacao(LocalDateTime.now());
         response.setMessage("Compra autorizada");
         response.setCodigoAutorizacao(UUID.randomUUID());
 
         return new ResponseEntity<>(response, HttpStatus.OK);
-
     }
-
-
 }
