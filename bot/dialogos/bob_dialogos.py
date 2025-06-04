@@ -73,7 +73,13 @@ class BobDialogo(ActivityHandler):
         texto = texto.encode('ascii', 'ignore').decode('utf-8')
         texto = re.sub(r'[^\w\s]', '', texto)
 
-        # 1. Produto específico (singular) - DEVE vir antes!
+        # 1. Ver extrato de compras (deve vir antes!)
+        if "extrato" in texto:
+            await dialog_context.begin_dialog("extrato_compras_dialog")
+            await self.conversation_state.save_changes(turn_context)
+            return
+
+        # 2. Produto específico (singular)
         if (
             re.search(r"\bum\b", texto) or re.search(r"\buma\b", texto)
         ) and (
@@ -89,29 +95,25 @@ class BobDialogo(ActivityHandler):
             await self.conversation_state.save_changes(turn_context)
             return
 
-        # 2. Ver todos os produtos
+        # 3. Ver todos os produtos
         if all(p in texto for p in ["ver", "produt"]):
             await self.mostrar_produtos(turn_context)
             await self.conversation_state.save_changes(turn_context)
             return
 
-        # 3. Comprar produtos
+        # 4. Comprar produtos
         if "comprar" in texto or "compra" in texto:
             await dialog_context.begin_dialog("comprar_produto_dialog")
             await self.conversation_state.save_changes(turn_context)
             return
 
-        # 4. Consultar produto específico por outros termos
+        # 5. Consultar produto específico por outros termos
         if "consultar" in texto and "produt" in texto:
             await dialog_context.begin_dialog("consultar_produtos_dialog")
             await self.conversation_state.save_changes(turn_context)
             return
 
-        # 5. Extrato
-        if "extrato" in texto or "pedido" in texto:
-            await dialog_context.begin_dialog("extrato_compras_dialog")
-            await self.conversation_state.save_changes(turn_context)
-            return
+        # 6. Consultar pedidos/extrato (caso queira tratar pedidos separadamente, adicione aqui)
 
         await turn_context.send_activity("Desculpe, não entendi. Por favor, escolha uma das opções do menu.")
         await self.conversation_state.save_changes(turn_context)
@@ -161,10 +163,15 @@ class BobDialogo(ActivityHandler):
         imagem = produto.get("imageUrl", [])
         url = imagem[0] if isinstance(imagem, list) and imagem else None
 
+        try:
+            preco_formatado = f"Preço: R$ {float(preco):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        except Exception:
+            preco_formatado = f"Preço: R$ {preco}"
+
         card = HeroCard(
             title=nome,
             subtitle=descricao,
-            text=f"Preço: R$ {preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            text=preco_formatado,
             images=[CardImage(url=url)] if url else []
         )
 
