@@ -12,6 +12,8 @@ from botbuilder.dialogs import (
 from botbuilder.core import MessageFactory
 from botbuilder.schema import HeroCard, CardImage, Attachment, Activity, ActivityTypes
 
+PLACEHOLDER_IMG = "https://via.placeholder.com/300x200?text=Sem+Imagem"
+
 class ConsultarProdutosDialog(ComponentDialog):
     def __init__(self, dialog_id="consultar_produtos_dialog"):
         super().__init__(dialog_id)
@@ -52,16 +54,22 @@ class ConsultarProdutosDialog(ComponentDialog):
                             for produto in produtos:
                                 nome = produto.get('nome_produto') or produto.get('productName', 'Produto')
                                 descricao = produto.get('descricao') or produto.get('productDescription', '')
+                                descricao = descricao[:80] + "..." if len(descricao) > 80 else descricao
                                 preco = produto.get('price', 0)
                                 imagem = produto.get('imageUrl', [])
-
                                 url = imagem[0] if isinstance(imagem, list) and imagem else (imagem if isinstance(imagem, str) else None)
+                                url = url or PLACEHOLDER_IMG
+
+                                try:
+                                    preco_formatado = f"💰 Preço: R$ {float(preco):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                                except Exception:
+                                    preco_formatado = f"💰 Preço: R$ {preco}"
 
                                 card = HeroCard(
                                     title=f"🎮 {nome}",
                                     subtitle=descricao,
-                                    text=f"💰 Preço: R$ {preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-                                    images=[CardImage(url=url)] if url else []
+                                    text=preco_formatado,
+                                    images=[CardImage(url=url)]
                                 )
                                 cards.append(Attachment(
                                     content_type="application/vnd.microsoft.card.hero",
