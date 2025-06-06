@@ -20,8 +20,8 @@ public class Product {
 
     @ElementCollection
     @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
-    @Column(name = "image_url") // <- nome da coluna no banco de dados
-    private List<String> imageUrl; // <- nome da propriedade que vai para o JSON
+    @Column(name = "image_url") 
+    private List<String> imageUrl; 
 
     private String productDescription;
 }

@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface CompraRepository extends JpaRepository<Compra, Integer> {
     List<Compra> findByUsuario(Usuario usuario);
+    Compra findByUsuarioAndNumeroPedido(Usuario usuario, String numeroPedido);
+
 }

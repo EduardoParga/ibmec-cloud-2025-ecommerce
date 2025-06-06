@@ -147,7 +147,6 @@ class ComprarProdutoDialog(ComponentDialog):
             "nome_produto": nome_produto
         }
    
-
         api_url = f"http://localhost:8080/credit_card/{id_user}/authorize"
 
         try:
@@ -155,10 +154,13 @@ class ComprarProdutoDialog(ComponentDialog):
                 async with session.post(api_url, json=payload) as resp:
                     resposta = await resp.json()
                     if resp.status == 200 and resposta.get("status") == "AUTHORIZED":
+                        numero_pedido = resposta.get("numero_pedido") or resposta.get("numeroPedido")
+                        msg_pedido = f"\n📦 Número do pedido: {numero_pedido}" if numero_pedido else ""
                         await step_context.context.send_activity(
                             f"✅ Compra realizada com sucesso!\n\n"
                             f"🎮 Produto: *{nome_produto}*\n\n"
                             f"💰 Valor: R$ {valor:,.2f}\n\n"
+                            f"{msg_pedido}\n\n"
                             f"Obrigado por comprar conosco! 😃"
                         )
                     else:

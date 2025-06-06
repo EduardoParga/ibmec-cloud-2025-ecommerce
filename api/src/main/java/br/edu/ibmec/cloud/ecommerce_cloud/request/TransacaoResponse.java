@@ -11,4 +11,5 @@ public class TransacaoResponse {
     private UUID codigoAutorizacao;
     private LocalDateTime dtTransacao;
     private String message;
+    private String numeroPedido; 
 }

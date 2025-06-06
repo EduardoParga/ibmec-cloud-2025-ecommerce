@@ -11,6 +11,7 @@ from botbuilder.core import (
 from botbuilder.schema import Activity
 from botbuilder.integration.aiohttp import BotFrameworkHttpAdapter
 from dialogos.bob_dialogos import BobDialogo 
+from dialogos.compras_dialogos import ComprarProdutoDialog
 
 
 APP_ID = os.environ.get("MicrosoftAppId", "")

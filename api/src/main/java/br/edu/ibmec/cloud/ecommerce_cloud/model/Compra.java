@@ -14,6 +14,10 @@ public class Compra {
     private String nome_produto;
     private Double price;
     private LocalDateTime dtCompra;
+    private String numeroPedido; 
+
+    @Column(length = 512)
+    private String imageUrl;
 
     @ManyToOne
     @JoinColumn(name = "usuario_id")
