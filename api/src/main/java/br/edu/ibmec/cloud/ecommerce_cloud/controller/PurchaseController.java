@@ -35,7 +35,7 @@ public class PurchaseController {
         List<Map<String, Object>> extrato = new ArrayList<>();
         for (Compra compra : compras) {
             Map<String, Object> item = new HashMap<>();
-            item.put("nome_produto", compra.getNome_produto()); // <-- Corrigido aqui!
+            item.put("nome_produto", compra.getNome_produto()); 
             item.put("price", compra.getPrice());
             item.put("dtCompra", compra.getDtCompra().toString());
             extrato.add(item);
