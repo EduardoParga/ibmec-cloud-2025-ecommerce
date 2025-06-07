@@ -3,6 +3,7 @@ from botbuilder.core import MessageFactory
 from botbuilder.schema import HeroCard, CardImage, Attachment, Activity, ActivityTypes
 import aiohttp
 from datetime import datetime
+import random
 
 class ConsultarPedidosDialog(ComponentDialog):
     def __init__(self, user_profile_accessor=None, dialog_id: str = "consultar_pedidos_dialog"):
@@ -48,11 +49,13 @@ class ConsultarPedidosDialog(ComponentDialog):
                                 url = imagem[0] if isinstance(imagem, list) and imagem else (imagem if isinstance(imagem, str) else None)
                                 numero_pedido = pedido.get('numeroPedido') or pedido.get('numero_pedido', '')
 
+                                status = random.choice(["Em separação", "Em transporte", "Entregue"])
+
                                 card = HeroCard(
-                                    title=f"{nome}",
-                                    subtitle=f"🎮 Produto: {nome}\n💰 Valor: R$ {valor:,.2f}\n📅 Data: {data_fmt}",
+
+                                    subtitle=f"💰 Valor: R$ {valor:,.2f}\n📅 Data: {data_fmt}",
                                     images=[CardImage(url=url)] if url else [],
-                                    text=f"📦 Número do pedido: {numero_pedido}" if numero_pedido else ""
+                                    text=f"📦 Número do pedido: {numero_pedido}\n\n🚚 Status: {status}" if numero_pedido else f"🚚 Status: {status}"
                                 )
                                 cards.append(Attachment(
                                     content_type="application/vnd.microsoft.card.hero",
@@ -104,7 +107,6 @@ class ConsultarPedidoEspecificoDialog(ComponentDialog):
             await step_context.context.send_activity("Não foi possível identificar o usuário ou o número do pedido.")
             return await step_context.end_dialog()
 
-       
         if numero_pedido.startswith("#"):
             numero_pedido_url = numero_pedido[1:]
         else:
@@ -127,11 +129,12 @@ class ConsultarPedidoEspecificoDialog(ComponentDialog):
                         url = imagem[0] if isinstance(imagem, list) and imagem else (imagem if isinstance(imagem, str) else None)
                         numero_pedido_card = pedido.get('numeroPedido') or pedido.get('numero_pedido', '')
 
+                        status = random.choice(["Em separação", "Em transporte", "Entregue"])
+
                         card = HeroCard(
-                            title=f"Pedido {numero_pedido_card}" if numero_pedido_card else nome,
                             subtitle=f"🎮 Produto: {nome}\n💰 Valor: R$ {valor:,.2f}\n📅 Data: {data_fmt}",
                             images=[CardImage(url=url)] if url else [],
-                            text=f"📦 Número do pedido: {numero_pedido_card}" if numero_pedido_card else ""
+                            text=f"📦 Número do pedido: {numero_pedido_card}\n🚚 Status: {status}" if numero_pedido_card else f"🚚 Status: {status}"
                         )
                         await step_context.context.send_activity(Activity(
                             type=ActivityTypes.message,
