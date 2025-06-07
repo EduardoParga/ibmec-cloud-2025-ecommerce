@@ -1,7 +1,9 @@
 package br.edu.ibmec.cloud.ecommerce_cloud.controller;
 
+import br.edu.ibmec.cloud.ecommerce_cloud.repository.cosmos.CartaoRepository;
+import br.edu.ibmec.cloud.ecommerce_cloud.repository.cosmos.CompraRepository;
 import br.edu.ibmec.cloud.ecommerce_cloud.model.Product;
-import br.edu.ibmec.cloud.ecommerce_cloud.repository.ProductRepository;
+import br.edu.ibmec.cloud.ecommerce_cloud.repository.jpa.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

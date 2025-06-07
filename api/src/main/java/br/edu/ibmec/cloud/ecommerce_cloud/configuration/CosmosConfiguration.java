@@ -1,45 +1,43 @@
 package br.edu.ibmec.cloud.ecommerce_cloud.configuration;
 
-// import org.springframework.boot.context.properties.EnableConfigurationProperties;
-// import org.springframework.context.annotation.Bean;
-// import org.springframework.context.annotation.Configuration;
-// import org.springframework.context.annotation.PropertySource;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
-// import com.azure.cosmos.CosmosClientBuilder;
-// import com.azure.cosmos.DirectConnectionConfig;
-// import com.azure.spring.data.cosmos.config.AbstractCosmosConfiguration;
-// import com.azure.spring.data.cosmos.config.CosmosConfig;
-// import com.azure.spring.data.cosmos.repository.config.EnableCosmosRepositories;
-// import com.azure.spring.data.cosmos.repository.config.EnableReactiveCosmosRepositories;
+import com.azure.cosmos.CosmosClientBuilder;
+import com.azure.cosmos.DirectConnectionConfig;
+import com.azure.spring.data.cosmos.config.AbstractCosmosConfiguration;
+import com.azure.spring.data.cosmos.config.CosmosConfig;
+import com.azure.spring.data.cosmos.repository.config.EnableCosmosRepositories;
 
-// @Configuration
-// @EnableConfigurationProperties(CosmosProperties.class)
-// @EnableCosmosRepositories(basePackages = "br.edu.ibmec.cloud.ecommerce_cloud.repository.cosmos")
-// @EnableReactiveCosmosRepositories
-// @PropertySource("classpath:application.properties")
-public class CosmosConfiguration /* extends AbstractCosmosConfiguration */ {
+@Configuration
+@EnableConfigurationProperties(CosmosProperties.class)
+@EnableCosmosRepositories(basePackages = "br.edu.ibmec.cloud.ecommerce_cloud.repository.cosmos")
+@PropertySource("classpath:application.properties")
+public class CosmosConfiguration extends AbstractCosmosConfiguration {
 
-    private CosmosProperties properties;
+    private final CosmosProperties properties;
 
     public CosmosConfiguration(CosmosProperties properties) {
         this.properties = properties;
     }
 
-    // @Bean
-    // public CosmosClientBuilder cosmosClientBuilder() {
-    //     return new CosmosClientBuilder()
-    //         .endpoint(properties.getUri())
-    //         .key(properties.getKey())
-    //         .directMode(DirectConnectionConfig.getDefaultConfig());
-    // }
+    @Bean
+    public CosmosClientBuilder cosmosClientBuilder() {
+        return new CosmosClientBuilder()
+            .endpoint(properties.getUri())
+            .key(properties.getKey())
+            .directMode(DirectConnectionConfig.getDefaultConfig());
+    }
 
-    // @Bean
-    // public CosmosConfig cosmosConfig() {
-    //     return CosmosConfig.builder().build();
-    // }
+    @Bean
+    public CosmosConfig cosmosConfig() {
+        return CosmosConfig.builder().build();
+    }
 
-    // @Override
-    // protected String getDatabaseName() {
-    //     return this.properties.getDatabase();
-    // }
+    @Override
+    protected String getDatabaseName() {
+        return this.properties.getDatabase();
+    }
 }

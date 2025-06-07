@@ -3,9 +3,9 @@ package br.edu.ibmec.cloud.ecommerce_cloud.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Entity(name = "usuario")
@@ -17,8 +17,14 @@ public class Usuario {
     }
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private String id;
+
+    @PrePersist
+    public void generateId() {
+        if (this.id == null) {
+            this.id = UUID.randomUUID().toString();
+        }
+    }
 
     @Column
     private String nome;
@@ -42,6 +48,4 @@ public class Usuario {
     @OneToMany
     @JoinColumn(referencedColumnName = "id", name = "id_usuario")
     private List<Endereco> enderecos;
-
-
 }

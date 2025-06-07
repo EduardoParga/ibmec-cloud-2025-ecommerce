@@ -1,4 +1,4 @@
-package br.edu.ibmec.cloud.ecommerce_cloud.repository;
+package br.edu.ibmec.cloud.ecommerce_cloud.repository.jpa;
 
 import br.edu.ibmec.cloud.ecommerce_cloud.model.Endereco;
 import org.springframework.data.jpa.repository.JpaRepository;

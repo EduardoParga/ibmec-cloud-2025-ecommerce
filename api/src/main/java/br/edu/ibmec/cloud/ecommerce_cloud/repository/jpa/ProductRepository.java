@@ -1,4 +1,4 @@
-package br.edu.ibmec.cloud.ecommerce_cloud.repository;
+package br.edu.ibmec.cloud.ecommerce_cloud.repository.jpa;
 
 import br.edu.ibmec.cloud.ecommerce_cloud.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,5 +9,5 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     @Query("SELECT p FROM Product p WHERE " +
            "LOWER(p.productName) LIKE %:word% OR LOWER(p.productDescription) LIKE %:word%")
     List<Product> searchByWord(String word);
-     List<Product> findByProductName(String productName); 
+    List<Product> findByProductName(String productName); 
 }

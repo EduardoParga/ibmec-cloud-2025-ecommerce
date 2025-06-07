@@ -8,8 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 public class Compra {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private String id;
 
     private String nome_produto;
     private Double price;

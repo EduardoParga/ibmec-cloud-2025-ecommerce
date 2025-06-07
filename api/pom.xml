@@ -14,18 +14,28 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>ecommerce-cloud</name>
 	<description>Demo project for Spring Boot</description>
-
+	<url />
+	<licenses>
+		<license />
+	</licenses>
+	<developers>
+		<developer />
+	</developers>
+	<scm>
+		<connection />
+		<developerConnection />
+		<tag />
+		<url />
+	</scm>
 	<properties>
 		<java.version>17</java.version>
-		<!-- <spring-cloud-azure.version>5.16.0</spring-cloud-azure.version> -->
+		<spring-cloud-azure.version>5.16.0</spring-cloud-azure.version>
 	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -36,21 +46,16 @@
 			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
-		<!-- CosmosDB NÃO ESTÁ SENDO USADO, COMENTADO -->
-		<!--
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-spring-data-cosmos</artifactId>
@@ -59,17 +64,12 @@
 			<groupId>com.azure</groupId>
 			<artifactId>azure-identity</artifactId>
 		</dependency>
-		-->
-
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.0.2</version>
 		</dependency>
 	</dependencies>
-
-	<!-- REMOVIDO GERENCIAMENTO DE DEPENDÊNCIA DO AZURE -->
-	<!--
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -81,7 +81,6 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-	-->
 
 	<build>
 		<plugins>
@@ -97,7 +96,6 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
-
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -112,4 +110,5 @@
 			</plugin>
 		</plugins>
 	</build>
+
 </project>

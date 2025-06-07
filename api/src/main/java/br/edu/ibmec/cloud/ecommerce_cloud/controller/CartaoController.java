@@ -1,13 +1,15 @@
 package br.edu.ibmec.cloud.ecommerce_cloud.controller;
 
-import br.edu.ibmec.cloud.ecommerce_cloud.model.Cartao;
-import br.edu.ibmec.cloud.ecommerce_cloud.model.Usuario;
 import br.edu.ibmec.cloud.ecommerce_cloud.model.Compra;
+import br.edu.ibmec.cloud.ecommerce_cloud.model.Cartao;
+
+import br.edu.ibmec.cloud.ecommerce_cloud.repository.cosmos.CartaoRepository;
+import br.edu.ibmec.cloud.ecommerce_cloud.repository.cosmos.CompraRepository;
+
+import br.edu.ibmec.cloud.ecommerce_cloud.model.Usuario;
 import br.edu.ibmec.cloud.ecommerce_cloud.model.Product;
-import br.edu.ibmec.cloud.ecommerce_cloud.repository.CartaoRepository;
-import br.edu.ibmec.cloud.ecommerce_cloud.repository.UsuarioRepository;
-import br.edu.ibmec.cloud.ecommerce_cloud.repository.CompraRepository;
-import br.edu.ibmec.cloud.ecommerce_cloud.repository.ProductRepository;
+import br.edu.ibmec.cloud.ecommerce_cloud.repository.jpa.UsuarioRepository;
+import br.edu.ibmec.cloud.ecommerce_cloud.repository.jpa.ProductRepository;
 import br.edu.ibmec.cloud.ecommerce_cloud.request.TransacaoRequest;
 import br.edu.ibmec.cloud.ecommerce_cloud.request.TransacaoResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,37 +40,38 @@ public class CartaoController {
     private ProductRepository productRepository;
 
     @PostMapping
-    public ResponseEntity<Cartao> create(@PathVariable("id_user") int id_user, @RequestBody Cartao cartao) {
-        // Verificando se o usuario existe na base
+    public ResponseEntity<Cartao> create(@PathVariable("id_user") String id_user, @RequestBody Cartao cartao) {
         Optional<Usuario> optionalUsuario = this.usuarioRepository.findById(id_user);
 
         if (optionalUsuario.isEmpty())
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
-        // Cria o cartao de credito na base
-        cartaoRepository.save(cartao);
+        // Gera o ID do cartão se não vier preenchido
+        if (cartao.getId() == null || cartao.getId().isEmpty()) {
+            cartao.setId(UUID.randomUUID().toString());
+        }
 
-        // Associa o cartao de credito ao usuario
-        Usuario usuario = optionalUsuario.get();
-        usuario.getCartoes().add(cartao);
-        usuarioRepository.save(usuario);
+        // Associa o cartão ao usuário (apenas referência)
+        cartao.setIdUsuario(id_user);
+
+        // Salva o cartão no CosmosDB
+        cartaoRepository.save(cartao);
 
         return new ResponseEntity<>(cartao, HttpStatus.CREATED);
     }
 
     @PostMapping("/authorize")
-    public ResponseEntity<TransacaoResponse> authorize(@PathVariable("id_user") int id_user, @RequestBody TransacaoRequest request) {
-        // Verificando se o usuario existe na base
+    public ResponseEntity<TransacaoResponse> authorize(@PathVariable("id_user") String id_user, @RequestBody TransacaoRequest request) {
         Optional<Usuario> optionalUsuario = this.usuarioRepository.findById(id_user);
 
         if (optionalUsuario.isEmpty())
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
-        Usuario usuario = optionalUsuario.get();
+        // Busca os cartões do usuário no CosmosDB
+        List<Cartao> cartoes = cartaoRepository.findByIdUsuario(id_user);
         Cartao cartaoCompra = null;
 
-        // Busca os dados do cartao de credito;
-        for (Cartao cartao : usuario.getCartoes()) {
+        for (Cartao cartao : cartoes) {
             if (request.getNumero().equals(cartao.getNumero()) && request.getCvv().equals(cartao.getCvv())) {
                 cartaoCompra = cartao;
                 break;
@@ -77,7 +80,6 @@ public class CartaoController {
 
         TransacaoResponse response = new TransacaoResponse();
 
-        // Não achei o cartao do usuario
         if (cartaoCompra == null) {
             response.setStatus("NOT_AUTHORIZED");
             response.setDtTransacao(LocalDateTime.now());
@@ -85,7 +87,6 @@ public class CartaoController {
             return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
         }
 
-        // Verifica se o cartao não está expirado
         if (cartaoCompra.getDtExpiracao() != null && cartaoCompra.getDtExpiracao().isBefore(LocalDateTime.now())) {
             response.setStatus("NOT_AUTHORIZED");
             response.setDtTransacao(LocalDateTime.now());
@@ -93,7 +94,6 @@ public class CartaoController {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
 
-        // Verifica se tem dinheiro no cartao para realizar a compra
         if (cartaoCompra.getSaldo() < request.getValor()) {
             response.setStatus("NOT_AUTHORIZED");
             response.setDtTransacao(LocalDateTime.now());
@@ -101,13 +101,9 @@ public class CartaoController {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
 
-        // Debita no cartao de credito o valor da compra
         cartaoCompra.setSaldo(cartaoCompra.getSaldo() - request.getValor());
-
-        // Atualiza o cartao na base de dados
         cartaoRepository.save(cartaoCompra);
 
-        // Gera número de pedido
         String letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         char letra = letras.charAt(new Random().nextInt(letras.length()));
         int numero = 1000000 + new Random().nextInt(9000000); // 7 dígitos
@@ -118,21 +114,20 @@ public class CartaoController {
             List<Product> produtos = productRepository.findByProductName(request.getNome_produto());
             if (produtos != null && !produtos.isEmpty()) {
                 Product produto = produtos.get(0);
-               
                 if (produto.getImageUrl() != null && !produto.getImageUrl().isEmpty()) {
-                    imageUrl = produto.getImageUrl().get(0); 
+                    imageUrl = produto.getImageUrl().get(0);
                 }
             }
         }
 
-    
         Compra compra = new Compra();
-        compra.setUsuario(usuario);
+        compra.setId(UUID.randomUUID().toString());
+        compra.setUsuario(optionalUsuario.get());
         compra.setNome_produto(request.getNome_produto());
         compra.setPrice(request.getValor());
         compra.setDtCompra(LocalDateTime.now());
         compra.setNumeroPedido(numeroPedido);
-        compra.setImageUrl(imageUrl); 
+        compra.setImageUrl(imageUrl);
         compraRepository.save(compra);
 
         response.setStatus("AUTHORIZED");
@@ -142,5 +137,11 @@ public class CartaoController {
         response.setNumeroPedido(numeroPedido);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Cartao>> list(@PathVariable("id_user") String id_user) {
+        List<Cartao> cartoes = cartaoRepository.findByIdUsuario(id_user);
+        return new ResponseEntity<>(cartoes, HttpStatus.OK);
     }
 }

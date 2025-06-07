@@ -7,8 +7,7 @@ import lombok.Data;
 @Entity(name = "endereco")
 public class Endereco {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private String id;
 
     @Column
     private String logradouro;
