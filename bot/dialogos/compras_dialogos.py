@@ -44,7 +44,7 @@ class ComprarProdutoDialog(ComponentDialog):
         produto_nome = step_context.result
         step_context.values["produto_nome"] = produto_nome
 
-        api_url = "http://localhost:8080/product"
+        api_url = "https://ap2big-gahqa2btgqfqhjbw.westus-01.azurewebsites.net/product"
         produto_encontrado = None
         melhor_score = 0
         try:
@@ -147,7 +147,7 @@ class ComprarProdutoDialog(ComponentDialog):
             "nome_produto": nome_produto
         }
    
-        api_url = f"http://localhost:8080/credit_card/{id_user}/authorize"
+        api_url = f"https://ap2big-gahqa2btgqfqhjbw.westus-01.azurewebsites.net/credit_card/{id_user}/authorize"
 
         try:
             async with aiohttp.ClientSession() as session:

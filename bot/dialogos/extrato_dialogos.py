@@ -34,7 +34,7 @@ class ExtratoComprasDialog(ComponentDialog):
             await step_context.context.send_activity("Não foi possível identificar o usuário. Faça login novamente.")
             return await step_context.end_dialog()
 
-        api_url = f"http://localhost:8080/purchase/{id_user}/extract"
+        api_url = f"https://ap2big-gahqa2btgqfqhjbw.westus-01.azurewebsites.net/purchase/{id_user}/extract"
 
         try:
             async with aiohttp.ClientSession() as session:

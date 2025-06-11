@@ -1,6 +1,7 @@
 import aiohttp
 import unicodedata
 import re
+import os
 from botbuilder.core import ActivityHandler, TurnContext, MessageFactory
 from botbuilder.schema import HeroCard, CardImage, Attachment, Activity, ActivityTypes, CardAction, ActionTypes
 from botbuilder.dialogs import DialogSet
@@ -16,7 +17,15 @@ class BobDialogo(ActivityHandler):
         super().__init__()
         self.conversation_state = conversation_state
         self.user_state = user_state
-        self.api_url = "http://localhost:8080/product"
+        # Endpoints públicos da API no Azure (ajustados conforme solicitado)
+        self.api_url = os.getenv(
+            "API_URL",
+            "https://ap2big-gahqa2btgqfqhjbw.westus-01.azurewebsites.net/product"
+        )
+        self.api_users_url = os.getenv(
+            "API_USERS_URL",
+            "https://ap2big-gahqa2btgqfqhjbw.westus-01.azurewebsites.net/users"
+        )
         self.user_profile_accessor = user_state.create_property("UserProfile")
 
         self.dialogs = DialogSet(conversation_state.create_property("DialogState"))
@@ -35,7 +44,7 @@ class BobDialogo(ActivityHandler):
         user_profile = await self.user_profile_accessor.get(turn_context, dict)
         if not user_profile.get("cpf"):
             cpf = turn_context.activity.text.strip()
-            api_url = "http://localhost:8080/users"
+            api_url = self.api_users_url
             id_user = None
             nome_usuario = None
             usuarios = []

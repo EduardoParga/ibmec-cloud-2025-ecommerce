@@ -27,7 +27,7 @@ class ConsultarPedidosDialog(ComponentDialog):
             await step_context.context.send_activity("Não foi possível identificar o usuário. Faça login novamente.")
             return await step_context.end_dialog()
 
-        api_url = f"http://localhost:8080/purchase/{id_user}/orders"
+        api_url = f"https://ap2big-gahqa2btgqfqhjbw.westus-01.azurewebsites.net/purchase/{id_user}/orders"
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(api_url) as resp:
@@ -112,7 +112,7 @@ class ConsultarPedidoEspecificoDialog(ComponentDialog):
         else:
             numero_pedido_url = numero_pedido
 
-        api_url = f"http://localhost:8080/purchase/{id_user}/orders/{numero_pedido_url}"
+        api_url = f"https://ap2big-gahqa2btgqfqhjbw.westus-01.azurewebsites.net/purchase/{id_user}/orders/{numero_pedido_url}"
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(api_url) as resp:

@@ -40,7 +40,7 @@ class ConsultarProdutosDialog(ComponentDialog):
         termo_limpo = re.sub(r'[^\w\s]', '', termo)
         termo_encoded = urllib.parse.quote(termo_limpo)
 
-        api_url = f"http://localhost:8080/product/search?termo={termo_encoded}"
+        api_url = f"https://ap2big-gahqa2btgqfqhjbw.westus-01.azurewebsites.net/product/search?termo={termo_encoded}"
 
         try:
             async with aiohttp.ClientSession() as session:
