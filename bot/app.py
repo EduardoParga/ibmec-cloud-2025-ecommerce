@@ -13,7 +13,6 @@ from botbuilder.integration.aiohttp import BotFrameworkHttpAdapter
 from dialogos.bob_dialogos import BobDialogo 
 from dialogos.compras_dialogos import ComprarProdutoDialog
 
-
 APP_ID = os.environ.get("MicrosoftAppId", "")
 APP_PASSWORD = os.environ.get("MicrosoftAppPassword", "")
 SETTINGS = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)
@@ -33,7 +32,7 @@ USER_STATE = UserState(MEMORY)
 # Bot principal
 BOT = BobDialogo(CONVERSATION_STATE, USER_STATE)
 
-# Endpoint
+# Endpoint para o bot responder mensagens
 async def messages(req: web.Request) -> web.Response:
     body = await req.json()
     activity = Activity().deserialize(body)
@@ -43,12 +42,15 @@ async def messages(req: web.Request) -> web.Response:
         return web.json_response(data=response.body, status=response.status)
     return web.Response(status=201)
 
+# Rota simples para teste no navegador
+async def home(req):
+    return web.Response(text="Bot está rodando!")
+
 # Inicialização do servidor
 APP = web.Application()
 APP.router.add_post("/api/messages", messages)
+APP.router.add_get("/", home)
 
 if __name__ == "__main__":
-    try:
-        web.run_app(APP, host="localhost", port=3978)
-    except Exception as e:
-        raise e
+    port = int(os.environ.get("PORT", 3978))
+    web.run_app(APP, host="0.0.0.0", port=port)
