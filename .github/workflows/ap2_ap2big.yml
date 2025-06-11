@@ -1,12 +1,12 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy JAR app to Azure Web App - ibmec-ecommerce
+name: Build and deploy JAR app to Azure Web App - ap2big
 
 on:
   push:
     branches:
-      - turma-quarta-noite
+      - ap2
   workflow_dispatch:
 
 jobs:
@@ -21,17 +21,17 @@ jobs:
       - name: Set up Java version
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Build with Maven
-        run: mvn clean install -DskipTests
+        run: mvn clean install -f api/pom.xml
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: '${{ github.workspace }}/target/*.jar'
+          path: './api/target/*.jar'
 
   deploy:
     runs-on: ubuntu-latest
@@ -52,15 +52,15 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_39033FB0E07A4BE8A45888F5CEBB9356 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8D8676EA4BCB40149715D7AAC860B200 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_DA446611F4D445F0996FA57338BA5015 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_703C7792035D4EA7855915FFE0C3EC9B }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C0E470FAA3CD4DDB865054FF0AC75186 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C9B7046E4875470DB78308E64B03317B }}
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'ibmec-ecommerce'
+          app-name: 'ap2big'
           slot-name: 'Production'
           package: '*.jar'
           
